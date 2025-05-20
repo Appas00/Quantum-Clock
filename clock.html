@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Quantum Clock</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #00ffff;
+            --secondary-color: #ff00ff;
+            --bg-color: #101010;
+            --container-color: #1a1a1a;
+            --text-color: #ffffff;
+            --accent-color: #00ff88;
+        }
+        
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: var(--bg-color);
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            transition: all 0.5s ease;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .particles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+        
+        .particle {
+            position: absolute;
+            background-color: var(--primary-color);
+            border-radius: 50%;
+            opacity: 0.3;
+        }
+        
+        .clock-container {
+            background-color: var(--container-color);
+            padding: 30px 60px;
+            border-radius: 20px;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.2);
+            text-align: center;
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+        
+        .clock-container::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                to bottom right,
+                rgba(0, 255, 255, 0.1),
+                rgba(0, 255, 255, 0)
+            );
+            transform: rotate(30deg);
+            z-index: -1;
+        }
+        
+        #clock {
+            font-size: 5rem;
+            color: var(--primary-color);
+            letter-spacing: 3px;
+            font-weight: 300;
+            margin-bottom: 5px;
+            text-shadow: 0 0 15px var(--primary-color);
+            font-family: 'Courier New', monospace;
+            position: relative;
+        }
+        
+        #milliseconds {
+            font-size: 1.5rem;
+            position: absolute;
+            top: 50%;
+            right: -40px;
+            transform: translateY(-50%);
+            color: var(--accent-color);
+        }
+        
+        #date {
+            font-size: 1.3rem;
+            color: var(--text-color);
+            opacity: 0.8;
+            margin-bottom: 25px;
+            letter-spacing: 1px;
+        }
+        
+        #additional-info {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            font-size: 0.9rem;
+            color: var(--text-color);
+            opacity: 0.7;
+        }
+        
+        .info-item {
+            display: flex;
+            align-items: center;
+        }
+        
+        .info-item i {
+            margin-right: 8px;
+            color: var(--accent-color);
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 25px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            background-color: rgba(0, 255, 255, 0.1);
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            min-width: 120px;
+            justify-content: center;
+        }
+        
+        button:hover {
+            background-color: rgba(0, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+        
+        button i {
+            font-size: 1rem;
+        }
+        
+        .theme-selector {
+            margin-top: 30px;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .theme-btn {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: transform 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.8rem;
+        }
+        
+        .theme-btn.active {
+            border-color: white;
+            transform: scale(1.1);
+        }
+        
+        .settings-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(30, 30, 30, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+            transform: translateX(150%);
+            transition: transform 0.4s ease;
+            z-index: 10;
+            backdrop-filter: blur(5px);
+        }
+        
+        .settings-panel.open {
+            transform: translateX(0);
+        }
+        
+        .settings-toggle {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: var(--primary-color);
+            font-size: 1.5rem;
+            cursor: pointer;
+            z-index: 11;
+        }
+        
+        .timezone-select {
+            background: rgba(0, 0, 0, 0.3);
+            color: var(--text-color);
+            border: 1px solid var(--primary-color);
+            padding: 8px;
+            border-radius: 5px;
+            margin-top: 10px;
+            width: 100%;
+        }
+        
+        .analog-clock {
+            width: 150px;
+            height: 150px;
+            border: 3px solid var(--primary-color);
+            border-radius: 50%;
+            position: relative;
+            margin: 20px auto;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+            display: none;
+        }
+        
+        .hand {
+            position: absolute;
+            transform-origin: bottom center;
+            bottom: 50%;
+            left: 50%;
+            border-radius: 5px;
+        }
+        
+        .hour-hand {
+            width: 6px;
+            height: 50px;
+            background-color: var(--primary-color);
+            margin-left: -3px;
+        }
+        
+        .minute-hand {
+            width: 4px;
+            height: 70px;
+            background-color: var(--accent-color);
+            margin-left: -2px;
+        }
+        
+        .second-hand {
+            width: 2px;
+            height: 80px;
+            background-color: #ff3366;
+            margin-left: -1px;
+        }
+        
+        .center-circle {
+            width: 12px;
+            height: 12px;
+            background-color: var(--primary-color);
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+        }
+        
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 100;
+        }
+        
+        .notification.show {
+            opacity: 1;
+        }
+        
+        @media (max-width: 768px) {
+            .clock-container {
+                padding: 20px;
+                width: 90%;
+            }
+            
+            #clock {
+                font-size: 3rem;
+            }
+            
+            #milliseconds {
+                font-size: 1rem;
+                right: -25px;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            button {
+                width: 100%;
+            }
+        }
+        
+        /* Animation classes */
+        .pulse {
+            animation: pulse 1s infinite alternate;
+        }
+        
+        @keyframes pulse {
+            from {
+                opacity: 0.7;
+                text-shadow: 0 0 5px var(--primary-color);
+            }
+            to {
+                opacity: 1;
+                text-shadow: 0 0 20px var(--primary-color);
+            }
+        }
+        
+        .glitch {
+            position: relative;
+        }
+        
+        .glitch::before, .glitch::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.8;
+        }
+        
+        .glitch::before {
+            color: #0ff;
+            z-index: -1;
+            animation: glitch-effect 3s infinite;
+        }
+        
+        .glitch::after {
+            color: #f0f;
+            z-index: -2;
+            animation: glitch-effect 2s infinite reverse;
+        }
+        
+        @keyframes glitch-effect {
+            0% { transform: translate(0); }
+            20% { transform: translate(-3px, 3px); }
+            40% { transform: translate(-3px, -3px); }
+            60% { transform: translate(3px, 3px); }
+            80% { transform: translate(3px, -3px); }
+            100% { transform: translate(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="particles" id="particles"></div>
+    
+    <button class="settings-toggle" id="settingsToggle">
+        <i class="fas fa-cog"></i>
+    </button>
+    
+    <div class="settings-panel" id="settingsPanel">
+        <h3 style="color: var(--primary-color); margin-top: 0;">Settings</h3>
+        <div>
+            <label style="color: var(--text-color);">Timezone:</label>
+            <select class="timezone-select" id="timezoneSelect">
+                <option value="local">Local Time</option>
+                <option value="utc">UTC</option>
+                <option value="America/New_York">New York</option>
+                <option value="Europe/London">London</option>
+                <option value="Asia/Tokyo">Tokyo</option>
+                <option value="Australia/Sydney">Sydney</option>
+            </select>
+        </div>
+        <div style="margin-top: 15px;">
+            <label style="color: var(--text-color);">Clock Style:</label>
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button onclick="setClockStyle('digital')" style="padding: 5px 10px;">Digital</button>
+                <button onclick="setClockStyle('analog')" style="padding: 5px 10px;">Analog</button>
+                <button onclick="setClockStyle('both')" style="padding: 5px 10px;">Both</button>
+            </div>
+        </div>
+        <div style="margin-top: 15px;">
+            <label style="color: var(--text-color);">Effects:</label>
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button onclick="toggleEffect('pulse')" style="padding: 5px 10px;">Pulse</button>
+                <button onclick="toggleEffect('glitch')" style="padding: 5px 10px;">Glitch</button>
+                <button onclick="toggleEffect('none')" style="padding: 5px 10px;">None</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="clock-container">
+        <div id="date">Monday, January 1, 2023</div>
+        <div id="clock">00:00:00<span id="milliseconds">.000</span></div>
+        <div id="ampm">AM</div>
+        
+        <div class="analog-clock" id="analogClock">
+            <div class="hour-hand"></div>
+            <div class="minute-hand"></div>
+            <div class="second-hand"></div>
+            <div class="center-circle"></div>
+        </div>
+        
+        <div id="additional-info">
+            <div class="info-item">
+                <i class="fas fa-sun"></i>
+                <span id="sunrise">Sunrise: 6:00 AM</span>
+            </div>
+            <div class="info-item">
+                <i class="fas fa-moon"></i>
+                <span id="sunset">Sunset: 6:00 PM</span>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button id="formatToggle">
+                <i class="far fa-clock"></i>
+                <span>24 Hour</span>
+            </button>
+            <button id="colorToggle">
+                <i class="fas fa-palette"></i>
+                <span>Color Effect</span>
+            </button>
+            <button id="stopwatchToggle">
+                <i class="fas fa-stopwatch"></i>
+                <span>Stopwatch</span>
+            </button>
+            <button id="timerToggle">
+                <i class="fas fa-hourglass-start"></i>
+                <span>Timer</span>
+            </button>
+        </div>
+        
+        <div class="theme-selector">
+            <div class="theme-btn" data-theme="default" style="background: #00ffff;" title="Cyan Theme">
+                <i class="fas fa-check"></i>
+            </div>
+            <div class="theme-btn" data-theme="purple" style="background: #ff00ff;" title="Purple Theme">
+                <i class="fas fa-check"></i>
+            </div>
+            <div class="theme-btn" data-theme="green" style="background: #00ff88;" title="Green Theme">
+                <i class="fas fa-check"></i>
+            </div>
+            <div class="theme-btn" data-theme="orange" style="background: #ff8800;" title="Orange Theme">
+                <i class="fas fa-check"></i>
+            </div>
+            <div class="theme-btn" data-theme="red" style="background: #ff3366;" title="Red Theme">
+                <i class="fas fa-check"></i>
+            </div>
+            <div class="theme-btn" data-theme="blue" style="background: #3366ff;" title="Blue Theme">
+                <i class="fas fa-check"></i>
+            </div>
+        </div>
+    </div>
+    
+    <div class="notification" id="notification"></div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.34/moment-timezone-with-data.min.js"></script>
+    
+    <script>
+        // DOM Elements
+        const clockElement = document.getElementById('clock');
+        const dateElement = document.getElementById('date');
+        const ampmElement = document.getElementById('ampm');
+        const millisecondsElement = document.getElementById('milliseconds');
+        const formatToggle = document.getElementById('formatToggle');
+        const colorToggle = document.getElementById('colorToggle');
+        const stopwatchToggle = document.getElementById('stopwatchToggle');
+        const timerToggle = document.getElementById('timerToggle');
+        const themeButtons = document.querySelectorAll('.theme-btn');
+        const clockContainer = document.querySelector('.clock-container');
+        const analogClock = document.getElementById('analogClock');
+        const hourHand = document.querySelector('.hour-hand');
+        const minuteHand = document.querySelector('.minute-hand');
+        const secondHand = document.querySelector('.second-hand');
+        const sunriseElement = document.getElementById('sunrise');
+        const sunsetElement = document.getElementById('sunset');
+        const settingsToggle = document.getElementById('settingsToggle');
+        const settingsPanel = document.getElementById('settingsPanel');
+        const timezoneSelect = document.getElementById('timezoneSelect');
+        const notification = document.getElementById('notification');
+        const particlesContainer = document.getElementById('particles');
+        
+        // State variables
+        let is24HourFormat = true;
+        let isColorEffectActive = false;
+        let currentTheme = 'default';
+        let currentMode = 'clock'; // 'clock', 'stopwatch', 'timer'
+        let stopwatchRunning = false;
+        let stopwatchStartTime = 0;
+        let stopwatchElapsed = 0;
+        let timerEndTime = 0;
+        let timerRunning = false;
+        let timerDuration = 300; // 5 minutes default
+        let currentTimezone = 'local';
+        let clockStyle = 'digital';
+        let currentEffect = 'none';
+        
+        // Initialize particles
+        function initParticles() {
+            for (let i = 0; i < 50; i++) {
+                const particle = document.createElement('div');
+                particle.classList.add('particle');
+                
+                // Random properties
+                const size = Math.random() * 5 + 2;
+                const posX = Math.random() * 100;
+                const posY = Math.random() * 100;
+                const duration = Math.random() * 20 + 10;
+                const delay = Math.random() * 10;
+                
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                particle.style.left = `${posX}%`;
+                particle.style.top = `${posY}%`;
+                particle.style.animation = `float ${duration}s linear ${delay}s infinite`;
+                
+                particlesContainer.appendChild(particle);
+            }
+            
+            // Add floating animation
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes float {
+                    0% { transform: translateY(0) translateX(0); opacity: 0; }
+                    10% { opacity: 0.3; }
+                    90% { opacity: 0.3; }
+                    100% { transform: translateY(-100vh) translateX(20px); opacity: 0; }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        
+        // Show notification
+        function showNotification(message, duration = 3000) {
+            notification.textContent = message;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, duration);
+        }
+        
+        // Calculate sunrise/sunset (simplified)
+        function calculateSunTimes(date, lat = 40.7128, lng = -74.0060) {
+            // This is a simplified calculation - in a real app you'd use a proper library
+            const hours = date.getHours();
+            const isDaytime = hours > 6 && hours < 18;
+            
+            return {
+                sunrise: '6:00 AM',
+                sunset: '6:00 PM'
+            };
+        }
+        
+        // Update analog clock
+        function updateAnalogClock(date) {
+            const hours = date.getHours() % 12;
+            const minutes = date.getMinutes();
+            const seconds = date.getSeconds();
+            const milliseconds = date.getMilliseconds();
+            
+            const hourDeg = (hours * 30) + (minutes * 0.5);
+            const minuteDeg = (minutes * 6) + (seconds * 0.1);
+            const secondDeg = (seconds * 6) + (milliseconds * 0.006);
+            
+            hourHand.style.transform = `rotate(${hourDeg}deg)`;
+            minuteHand.style.transform = `rotate(${minuteDeg}deg)`;
+            secondHand.style.transform = `rotate(${secondDeg}deg)`;
+        }
+        
+        // Format time with timezone
+        function formatWithTimezone(date, timezone) {
+            if (timezone === 'local') {
+                return moment(date);
+            } else if (timezone === 'utc') {
+                return moment.utc(date);
+            } else {
+                return moment(date).tz(timezone);
+            }
+        }
+        
+        // Update clock function
+        function updateClock() {
+            const now = new Date();
+            let displayDate;
+            
+            // Apply timezone
+            const tzDate = formatWithTimezone(now, currentTimezone);
+            
+            // Update date
+            dateElement.textContent = tzDate.format('dddd, MMMM D, YYYY');
+            
+            let hours, minutes, seconds, milliseconds;
+            
+            if (currentMode === 'clock') {
+                hours = tzDate.hours();
+                minutes = tzDate.minutes();
+                seconds = tzDate.seconds();
+                milliseconds = now.getMilliseconds();
+                
+                // Update sun times
+                const sunTimes = calculateSunTimes(tzDate.toDate());
+                sunriseElement.textContent = `Sunrise: ${sunTimes.sunrise}`;
+                sunsetElement.textContent = `Sunset: ${sunTimes.sunset}`;
+            } else if (currentMode === 'stopwatch') {
+                const elapsed = stopwatchRunning ? 
+                    Date.now() - stopwatchStartTime + stopwatchElapsed : 
+                    stopwatchElapsed;
+                
+                hours = Math.floor(elapsed / 3600000);
+                minutes = Math.floor((elapsed % 3600000) / 60000);
+                seconds = Math.floor((elapsed % 60000) / 1000);
+                milliseconds = elapsed % 1000;
+            } else if (currentMode === 'timer') {
+                const remaining = timerRunning ? 
+                    timerEndTime - Date.now() : 
+                    timerDuration * 1000;
+                
+                if (remaining <= 0 && timerRunning) {
+                    timerRunning = false;
+                    showNotification("Timer Complete!");
+                    document.title = "⏰ Timer Complete!";
+                    // Flash effect
+                    let flashCount = 0;
+                    const flashInterval = setInterval(() => {
+                        document.body.style.backgroundColor = flashCount % 2 === 0 ? '#ff0000' : '#101010';
+                        flashCount++;
+                        if (flashCount >= 6) {
+                            clearInterval(flashInterval);
+                            document.body.style.backgroundColor = '';
+                        }
+                    }, 500);
+                }
+                
+                hours = Math.floor(remaining / 3600000);
+                minutes = Math.floor((remaining % 3600000) / 60000);
+                seconds = Math.floor((remaining % 60000) / 1000);
+                milliseconds = remaining % 1000;
+            }
+            
+            // Handle 12/24 hour format
+            let displayHours;
+            if (is24HourFormat || currentMode !== 'clock') {
+                displayHours = hours.toString().padStart(2, "0");
+                ampmElement.style.display = 'none';
+            } else {
+                const ampm = hours >= 12 ? 'PM' : 'AM';
+                hours = hours % 12;
+                hours = hours ? hours : 12; // Convert 0 to 12
+                displayHours = hours.toString().padStart(2, "0");
+                ampmElement.textContent = ampm;
+                ampmElement.style.display = 'block';
+            }
+            
+            // Update digital display
+            clockElement.textContent = `${displayHours}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+            millisecondsElement.textContent = `.${milliseconds.toString().padStart(3, "0")}`;
+            
+            // Update document title
+            if (currentMode === 'clock') {
+                document.title = `${displayHours}:${minutes.toString().padStart(2, "0")} - Quantum Clock`;
+            }
+            
+            // Update analog clock
+            updateAnalogClock(now);
+            
+            // Apply color effect if active
+            if (isColorEffectActive && currentMode === 'clock') {
+                const hue = (seconds * 6).toString();
+                clockElement.style.color = `hsl(${hue}, 100%, 50%)`;
+                clockElement.style.textShadow = `0 0 15px hsl(${hue}, 100%, 50%)`;
+            } else {
+                clockElement.style.color = '';
+                clockElement.style.textShadow = '';
+            }
+            
+            // Apply visual effects
+            applyEffects();
+        }
+        
+        // Apply visual effects
+        function applyEffects() {
+            // Remove all effect classes first
+            clockElement.classList.remove('pulse', 'glitch');
+            
+            if (currentEffect === 'pulse') {
+                clockElement.classList.add('pulse');
+            } else if (currentEffect === 'glitch') {
+                clockElement.classList.add('glitch');
+                clockElement.setAttribute('data-text', clockElement.textContent);
+            }
+        }
+        
+        // Stopwatch functions
+        function startStopwatch() {
+            if (!stopwatchRunning) {
+                stopwatchStartTime = Date.now();
+                stopwatchRunning = true;
+                stopwatchToggle.innerHTML = '<i class="fas fa-pause"></i><span>Pause</span>';
+                showNotification('Stopwatch started');
+            } else {
+                stopwatchElapsed += Date.now() - stopwatchStartTime;
+                stopwatchRunning = false;
+                stopwatchToggle.innerHTML = '<i class="fas fa-play"></i><span>Resume</span>';
+                showNotification('Stopwatch paused');
+            }
+        }
+        
+        function resetStopwatch() {
+            stopwatchRunning = false;
+            stopwatchElapsed = 0;
+            stopwatchToggle.innerHTML = '<i class="fas fa-stopwatch"></i><span>Stopwatch</span>';
+            updateClock();
+            showNotification('Stopwatch reset');
+        }
+        
+        // Timer functions
+        function startTimer() {
+            if (!timerRunning) {
+                timerEndTime = Date.now() + (timerDuration * 1000);
+                timerRunning = true;
+                timerToggle.innerHTML = '<i class="fas fa-pause"></i><span>Pause</span>';
+                showNotification('Timer started');
+            } else {
+                timerDuration = Math.ceil((timerEndTime - Date.now()) / 1000);
+                timerRunning = false;
+                timerToggle.innerHTML = '<i class="fas fa-play"></i><span>Resume</span>';
+                showNotification('Timer paused');
+            }
+        }
+        
+        function resetTimer() {
+            timerRunning = false;
+            timerDuration = 300; // Reset to 5 minutes
+            timerToggle.innerHTML = '<i class="fas fa-hourglass-start"></i><span>Timer</span>';
+            updateClock();
+            showNotification('Timer reset');
+        }
+        
+        function setTimerDuration(minutes) {
+            timerDuration = minutes * 60;
+            if (!timerRunning) {
+                updateClock();
+            }
+            showNotification(`Timer set to ${minutes} minutes`);
+        }
+        
+        // Set clock style
+        function setClockStyle(style) {
+            clockStyle = style;
+            
+            if (style === 'digital') {
+                clockElement.style.display = 'block';
+                analogClock.style.display = 'none';
+            } else if (style === 'analog') {
+                clockElement.style.display = 'none';
+                analogClock.style.display = 'block';
+            } else {
+                clockElement.style.display = 'block';
+                analogClock.style.display = 'block';
+            }
+        }
+        
+        // Toggle visual effect
+        function toggleEffect(effect) {
+            currentEffect = effect;
+            applyEffects();
+            showNotification(`Effect set to ${effect}`);
+        }
+        
+        // Event Listeners
+        formatToggle.addEventListener('click', () => {
+            is24HourFormat = !is24HourFormat;
+            formatToggle.querySelector('span').textContent = is24HourFormat ? '24 Hour' : '12 Hour';
+            updateClock();
+        });
+        
+        colorToggle.addEventListener('click', () => {
+            isColorEffectActive = !isColorEffectActive;
+            colorToggle.querySelector('span').textContent = isColorEffectActive ? 'Solid Color' : 'Color Effect';
+            updateClock();
+            showNotification(isColorEffectActive ? 'Color effect enabled' : 'Color effect disabled');
+        });
+        
+        stopwatchToggle.addEventListener('click', () => {
+            if (currentMode !== 'stopwatch') {
+                // Switch to stopwatch mode
+                currentMode = 'stopwatch';
+                stopwatchToggle.innerHTML = '<i class="fas fa-stopwatch"></i><span>Start</span>';
+                timerToggle.style.display = 'none';
+                formatToggle.style.display = 'none';
+                colorToggle.style.display = 'none';
+                document.getElementById('additional-info').style.display = 'none';
+                ampmElement.style.display = 'none';
+                resetStopwatch();
+                showNotification('Stopwatch mode');
+            } else {
+                startStopwatch();
+            }
+        });
+        
+        timerToggle.addEventListener('click', () => {
+            if (currentMode !== 'timer') {
+                // Switch to timer mode
+                currentMode = 'timer';
+                timerToggle.innerHTML = '<i class="fas fa-hourglass-start"></i><span>Start</span>';
+                stopwatchToggle.style.display = 'none';
+                formatToggle.style.display = 'none';
+                colorToggle.style.display = 'none';
+                document.getElementById('additional-info').style.display = 'none';
+                ampmElement.style.display = 'none';
+                resetTimer();
+                showNotification('Timer mode (5 minutes)');
+            } else {
+                startTimer();
+            }
+        });
+        
+        // Theme buttons
+        themeButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                currentTheme = button.dataset.theme;
+                
+                // Update active state
+                themeButtons.forEach(btn => {
+                    btn.classList.remove('active');
+                    btn.innerHTML = '<i class="fas fa-check"></i>';
+                });
+                button.classList.add('active');
+                
+                // Apply theme
+                switch(currentTheme) {
+                    case 'default':
+                        document.documentElement.style.setProperty('--primary-color', '#00ffff');
+                        document.documentElement.style.setProperty('--secondary-color', '#ff00ff');
+                        document.documentElement.style.setProperty('--accent-color', '#00ff88');
+                        clockContainer.style.boxShadow = '0 0 30px rgba(0, 255, 255, 0.2)';
+                        break;
+                    case 'purple':
+                        document.documentElement.style.setProperty('--primary-color', '#ff00ff');
+                        document.documentElement.style.setProperty('--secondary-color', '#00ffff');
+                        document.documentElement.style.setProperty('--accent-color', '#ff00aa');
+                        clockContainer.style.boxShadow = '0 0 30px rgba(255, 0, 255, 0.2)';
+                        break;
+                    case 'green':
+                        document.documentElement.style.setProperty('--primary-color', '#00ff88');
+                        document.documentElement.style.setProperty('--secondary-color', '#0088ff');
+                        document.documentElement.style.setProperty('--accent-color', '#00ffff');
+                        clockContainer.style.boxShadow = '0 0 30px rgba(0, 255, 136, 0.2)';
+                        break;
+                    case 'orange':
+                        document.documentElement.style.setProperty('--primary-color', '#ff8800');
+                        document.documentElement.style.setProperty('--secondary-color', '#ff0088');
+                        document.documentElement.style.setProperty('--accent-color', '#ffcc00');
+                        clockContainer.style.boxShadow = '0 0 30px rgba(255, 136, 0, 0.2)';
+                        break;
+                    case 'red':
+                        document.documentElement.style.setProperty('--primary-color', '#ff3366');
+                        document.documentElement.style.setProperty('--secondary-color', '#6633ff');
+                        document.documentElement.style.setProperty('--accent-color', '#ff0033');
+                        clockContainer.style.boxShadow = '0 0 30px rgba(255, 51, 102, 0.2)';
+                        break;
+                    case 'blue':
+                        document.documentElement.style.setProperty('--primary-color', '#3366ff');
+                        document.documentElement.style.setProperty('--secondary-color', '#33ff66');
+                        document.documentElement.style.setProperty('--accent-color', '#3399ff');
+                        clockContainer.style.boxShadow = '0 0 30px rgba(51, 102, 255, 0.2)';
+                        break;
+                }
+                
+                showNotification(`${currentTheme} theme applied`);
+            });
+        });
+        
+        // Settings panel toggle
+        settingsToggle.addEventListener('click', () => {
+            settingsPanel.classList.toggle('open');
+        });
+        
+        // Timezone change
+        timezoneSelect.addEventListener('change', () => {
+            currentTimezone = timezoneSelect.value;
+            updateClock();
+            showNotification(`Timezone set to ${timezoneSelect.options[timezoneSelect.selectedIndex].text}`);
+        });
+        
+        // Return to clock mode
+        function returnToClockMode() {
+            currentMode = 'clock';
+            stopwatchToggle.style.display = 'flex';
+            timerToggle.style.display = 'flex';
+            formatToggle.style.display = 'flex';
+            colorToggle.style.display = 'flex';
+            document.getElementById('additional-info').style.display = 'flex';
+            stopwatchRunning = false;
+            timerRunning = false;
+            stopwatchToggle.innerHTML = '<i class="fas fa-stopwatch"></i><span>Stopwatch</span>';
+            timerToggle.innerHTML = '<i class="fas fa-hourglass-start"></i><span>Timer</span>';
+            updateClock();
+        }
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && currentMode !== 'clock') {
+                returnToClockMode();
+                showNotification('Returned to clock mode');
+            }
+            
+            if (e.key === 's' && e.ctrlKey) {
+                settingsPanel.classList.toggle('open');
+            }
+        });
+        
+        // Initialize
+        initParticles();
+        setInterval(updateClock, 10); // Update every 10ms for smooth milliseconds
+        updateClock();
+        themeButtons[0].classList.add('active');
+        setClockStyle('digital');
+        
+        // Add animation on load
+        document.addEventListener('DOMContentLoaded', () => {
+            clockContainer.style.transform = 'scale(0.9)';
+            clockContainer.style.opacity = '0';
+            
+            setTimeout(() => {
+                clockContainer.style.transition = 'transform 0.5s, opacity 0.5s';
+                clockContainer.style.transform = 'scale(1)';
+                clockContainer.style.opacity = '1';
+            }, 100);
+        });
+    </script>
+</body>
+</html>
